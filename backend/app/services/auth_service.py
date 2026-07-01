@@ -1,0 +1,63 @@
+"""Registro, autenticación y emisión de tokens."""
+
+from __future__ import annotations
+
+import uuid
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    verify_password,
+)
+from app.domain.models.user import StudentProfile, User
+from app.schemas.auth import RegisterRequest, TokenPair
+
+
+class AuthError(Exception):
+    """Error de dominio de autenticación (credenciales/estado)."""
+
+
+class AuthService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get_by_email(self, email: str) -> User | None:
+        stmt = select(User).where(User.email == email.lower(), User.deleted_at.is_(None))
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def get_by_id(self, user_id: uuid.UUID) -> User | None:
+        stmt = select(User).where(User.id == user_id, User.deleted_at.is_(None))
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def register(self, data: RegisterRequest) -> User:
+        if await self.get_by_email(data.email):
+            raise AuthError("Ya existe una cuenta con ese correo.")
+        user = User(
+            email=data.email.lower(),
+            hashed_password=hash_password(data.password),
+            full_name=data.full_name,
+        )
+        user.profile = StudentProfile()
+        self.db.add(user)
+        await self.db.flush()
+        return user
+
+    async def authenticate(self, email: str, password: str) -> User:
+        user = await self.get_by_email(email)
+        if not user or not verify_password(password, user.hashed_password):
+            raise AuthError("Correo o contraseña incorrectos.")
+        if not user.is_active:
+            raise AuthError("La cuenta está desactivada.")
+        return user
+
+    @staticmethod
+    def issue_tokens(user: User) -> TokenPair:
+        claims = {"role": user.role.value, "email": user.email}
+        return TokenPair(
+            access_token=create_access_token(str(user.id), **claims),
+            refresh_token=create_refresh_token(str(user.id)),
+        )

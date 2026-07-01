@@ -1,0 +1,12 @@
+{
+  "name": "PREU Mentor IA",
+  "short_name": "PREU Mentor",
+  "description": "Tutor Socrático inteligente para academias preuniversitarias.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b12",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 250 250 252;
+    --surface: 255 255 255;
+    --border: 228 228 235;
+    --text: 17 17 27;
+    --muted: 113 113 130;
+  }
+  .dark {
+    --bg: 11 11 18;
+    --surface: 20 20 30;
+    --border: 39 39 52;
+    --text: 237 237 245;
+    --muted: 140 140 160;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply font-sans antialiased;
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+  }
+}
+
+@layer components {
+  .surface {
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
+  }
+  .glass {
+    background: rgb(var(--surface) / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(var(--border) / 0.6);
+  }
+  .text-muted {
+    color: rgb(var(--muted));
+  }
+  .card {
+    @apply surface rounded-2xl shadow-soft;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5
+           text-sm font-semibold text-white transition
+           hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm
+           font-medium text-muted transition hover:bg-brand-500/10 hover:text-brand-500;
+  }
+  .input {
+    @apply w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2.5
+           text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-[rgb(var(--border))];
+  }
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+  }
+}
+
+/* KaTeX hereda color del texto */
+.katex {
+  color: inherit;
+}

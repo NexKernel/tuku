@@ -1,0 +1,62 @@
+# PREU Mentor IA — despliegue en Dokploy
+# Usa el PostgreSQL que ya creaste en Dokploy (no levanta su propia BD).
+# Las variables reales se definen en la pestaña "Environment" del stack en Dokploy.
+#
+# Dominios (pestaña "Domains" de Dokploy):
+#   frontend → puerto 80    (ej. mentor.tudominio.com)
+#   backend  → puerto 8000  (ej. api.mentor.tudominio.com)
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      # Pega la cadena de tu BD de Dokploy en la variable DATABASE_URL del panel.
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      AI_PROVIDER: ${AI_PROVIDER:-echo}
+      AI_MODEL: ${AI_MODEL:-gpt-4o}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    expose:
+      - "8000"
+    depends_on:
+      - redis
+    networks:
+      - dokploy-network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # URL pública del backend; se hornea en el build del frontend.
+        VITE_API_URL: ${VITE_API_URL}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    networks:
+      - dokploy-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - dokploy-network
+
+volumes:
+  redis_data:
+
+# Red compartida de Dokploy: permite alcanzar el PostgreSQL externo
+# (socratico-postgresql-...) y que Traefik enrute los dominios.
+networks:
+  dokploy-network:
+    external: true

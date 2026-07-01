@@ -1,0 +1,10 @@
+Migraciones Alembic (async).
+
+Generar una migración autogenerada:
+    alembic revision --autogenerate -m "mensaje"
+
+Aplicar:
+    alembic upgrade head
+
+Revertir la última:
+    alembic downgrade -1
