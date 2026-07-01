@@ -28,9 +28,9 @@ DATABASE_URL=postgresql://socratico_user:TU_PASSWORD@socratico-postgresql-2nxoxb
 # Seguridad — genera uno nuevo (ver abajo)
 SECRET_KEY=pon_un_secreto_largo_y_aleatorio
 
-# Dominios
+# Dominio (UN solo dominio: el frontend hace proxy /api → backend, sin CORS)
 BACKEND_CORS_ORIGINS=https://mentor.tudominio.com
-VITE_API_URL=https://api.mentor.tudominio.com/api/v1
+VITE_API_URL=/api/v1
 
 # IA
 AI_PROVIDER=openai
@@ -49,15 +49,21 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ## 4. Dominios (pestaña *Domains*)
 
-| Servicio | Puerto | Dominio sugerido |
-|----------|--------|------------------|
+Solo necesitas **un dominio**, apuntando al frontend. El frontend (Nginx) reenvía
+`/api` al backend por la red interna, así que **no** expones el backend ni hay CORS.
+
+| Servicio | Puerto | Dominio |
+|----------|--------|---------|
 | `socratico-frontend` | 80 | `mentor.tudominio.com` |
-| `socratico-backend` | 8000 | `api.mentor.tudominio.com` |
 
 Dokploy (Traefik) gestiona el TLS automáticamente (Let's Encrypt).
 
-> El `VITE_API_URL` debe apuntar al dominio del **backend** + `/api/v1`, porque se
-> hornea en el build del frontend. Si cambias el dominio, vuelve a desplegar.
+- App: `https://mentor.tudominio.com`
+- API bajo el mismo dominio: `https://mentor.tudominio.com/api/v1/...`
+- Swagger: `https://mentor.tudominio.com/docs`
+
+> `VITE_API_URL=/api/v1` (ruta relativa) ya viene por defecto: mismo origen, sin CORS.
+> No necesitas un dominio aparte para el backend.
 
 ## 5. Desplegar
 
@@ -71,9 +77,9 @@ uvicorn app.main:app   →  API en :8000
 
 ## 6. Verificación
 
-- API: `https://api.mentor.tudominio.com/health` → `{"status":"ok"}`
-- Swagger: `https://api.mentor.tudominio.com/docs`
 - App: `https://mentor.tudominio.com`
+- API: `https://mentor.tudominio.com/health` → `{"status":"ok"}`
+- Swagger: `https://mentor.tudominio.com/docs`
 - Login demo: `estudiante@preu.pe` / `estudiante123` (cámbialo/elimínalo en producción).
 
 ## 7. Notas de red

@@ -68,7 +68,8 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+        # Ruta relativa: el Nginx del frontend hace proxy /api → backend (sin CORS).
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
     restart: unless-stopped
     depends_on:
       - socratico-backend

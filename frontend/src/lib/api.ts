@@ -2,7 +2,9 @@ import axios, { AxiosError } from "axios";
 import { useAuthStore } from "@/store/auth";
 import type { TokenPair } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+// Por defecto, ruta relativa same-origin: el proxy (Nginx en prod, Vite en dev)
+// reenvía /api al backend. Así se evita CORS por completo.
+const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
 
 export const api = axios.create({ baseURL: API_URL });
 
