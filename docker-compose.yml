@@ -1,6 +1,7 @@
-# PREU Mentor IA — orquestación completa (dev / Dokploy)
+# PREU Mentor IA — orquestación completa (desarrollo local)
+# Nombres con prefijo "socratico-" para no colisionar con otros proyectos.
 services:
-  db:
+  socratico-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -17,7 +18,7 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
+  socratico-redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
@@ -26,7 +27,7 @@ services:
     ports:
       - "6379:6379"
 
-  minio:
+  socratico-minio:
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -39,37 +40,38 @@ services:
       - "9000:9000"
       - "9001:9001"
 
-  backend:
+  socratico-backend:
     build: ./backend
     restart: unless-stopped
     depends_on:
-      db:
+      socratico-db:
         condition: service_healthy
-      redis:
+      socratico-redis:
         condition: service_started
     environment:
-      POSTGRES_HOST: db
+      POSTGRES_HOST: socratico-db
       POSTGRES_USER: ${POSTGRES_USER:-preu}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-preu_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-preu_mentor}
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://socratico-redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost}
       AI_PROVIDER: ${AI_PROVIDER:-echo}
       AI_MODEL: ${AI_MODEL:-claude-opus-4-8}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ENVIRONMENT: ${ENVIRONMENT:-production}
     ports:
       - "8000:8000"
 
-  frontend:
+  socratico-frontend:
     build:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
     restart: unless-stopped
     depends_on:
-      - backend
+      - socratico-backend
     ports:
       - "80:80"
 

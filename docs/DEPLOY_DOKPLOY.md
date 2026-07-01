@@ -51,8 +51,8 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 
 | Servicio | Puerto | Dominio sugerido |
 |----------|--------|------------------|
-| `frontend` | 80 | `mentor.tudominio.com` |
-| `backend` | 8000 | `api.mentor.tudominio.com` |
+| `socratico-frontend` | 80 | `mentor.tudominio.com` |
+| `socratico-backend` | 8000 | `api.mentor.tudominio.com` |
 
 Dokploy (Traefik) gestiona el TLS automáticamente (Let's Encrypt).
 
@@ -84,9 +84,10 @@ Si el nombre del host cambia, actualiza `DATABASE_URL`.
 
 ## Alternativa: dos Aplicaciones separadas
 
-Si prefieres no usar Compose, crea dos **Applications** en Dokploy:
+Si prefieres no usar Compose, crea dos **Applications** en Dokploy (usa nombres
+propios como `socratico-backend` y `socratico-frontend` para no colisionar):
 
-- **backend** → build context `backend/` (Dockerfile). Variables: las del backend de arriba.
-- **frontend** → build context `frontend/` (Dockerfile), build arg `VITE_API_URL`.
+- **socratico-backend** → build context `backend/` (Dockerfile). Variables: las del backend de arriba.
+- **socratico-frontend** → build context `frontend/` (Dockerfile), build arg `VITE_API_URL`.
 
 Ambas deben unirse a `dokploy-network` para ver el PostgreSQL.

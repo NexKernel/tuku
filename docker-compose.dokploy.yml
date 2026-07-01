@@ -2,18 +2,21 @@
 # Usa el PostgreSQL que ya creaste en Dokploy (no levanta su propia BD).
 # Las variables reales se definen en la pestaña "Environment" del stack en Dokploy.
 #
+# Nombres de servicio con prefijo "socratico-" para no colisionar con otros
+# proyectos en la red compartida dokploy-network.
+#
 # Dominios (pestaña "Domains" de Dokploy):
-#   frontend → puerto 80    (ej. mentor.tudominio.com)
-#   backend  → puerto 8000  (ej. api.mentor.tudominio.com)
+#   socratico-frontend → puerto 80    (ej. mentor.tudominio.com)
+#   socratico-backend  → puerto 8000  (ej. api.mentor.tudominio.com)
 
 services:
-  backend:
+  socratico-backend:
     build: ./backend
     restart: unless-stopped
     environment:
       # Pega la cadena de tu BD de Dokploy en la variable DATABASE_URL del panel.
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://socratico-redis:6379/0
       SECRET_KEY: ${SECRET_KEY}
       ENVIRONMENT: production
       DEBUG: "false"
@@ -25,11 +28,11 @@ services:
     expose:
       - "8000"
     depends_on:
-      - redis
+      - socratico-redis
     networks:
       - dokploy-network
 
-  frontend:
+  socratico-frontend:
     build:
       context: ./frontend
       args:
@@ -39,21 +42,21 @@ services:
     expose:
       - "80"
     depends_on:
-      - backend
+      - socratico-backend
     networks:
       - dokploy-network
 
-  redis:
+  socratico-redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
     volumes:
-      - redis_data:/data
+      - socratico_redis_data:/data
     networks:
       - dokploy-network
 
 volumes:
-  redis_data:
+  socratico_redis_data:
 
 # Red compartida de Dokploy: permite alcanzar el PostgreSQL externo
 # (socratico-postgresql-...) y que Traefik enrute los dominios.
