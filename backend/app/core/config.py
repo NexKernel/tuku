@@ -40,10 +40,12 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # IA
-    AI_PROVIDER: Literal["anthropic", "openai", "gemini", "echo"] = "anthropic"
+    AI_PROVIDER: Literal["anthropic", "openai", "deepseek", "gemini", "echo"] = "anthropic"
     AI_MODEL: str = "claude-opus-4-8"
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     GEMINI_API_KEY: str = ""
 
     @computed_field  # type: ignore[prop-decorator]

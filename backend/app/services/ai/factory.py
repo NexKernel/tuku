@@ -28,6 +28,17 @@ def build_ai_provider() -> AIProvider:
 
         return OpenAIProvider(settings.OPENAI_API_KEY, settings.AI_MODEL)
 
+    if provider == "deepseek" and settings.DEEPSEEK_API_KEY:
+        # DeepSeek expone una API compatible con OpenAI: reutilizamos el mismo SDK
+        # cambiando solo el base_url.
+        from app.services.ai.openai_provider import OpenAIProvider
+
+        return OpenAIProvider(
+            settings.DEEPSEEK_API_KEY,
+            settings.AI_MODEL,
+            base_url=settings.DEEPSEEK_BASE_URL,
+        )
+
     # Espacio para Gemini — misma interfaz `AIProvider`.
 
     if provider != "echo":
