@@ -1,4 +1,4 @@
-# Arquitectura — PREU Mentor IA
+# Arquitectura — Tuku
 
 ## Principios
 

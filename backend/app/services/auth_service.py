@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+from anyio import to_thread
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,7 +39,8 @@ class AuthService:
             raise AuthError("Ya existe una cuenta con ese correo.")
         user = User(
             email=data.email.lower(),
-            hashed_password=hash_password(data.password),
+            # bcrypt es CPU puro (~250 ms): en un hilo para no congelar el event loop.
+            hashed_password=await to_thread.run_sync(hash_password, data.password),
             full_name=data.full_name,
         )
         user.profile = StudentProfile()
@@ -48,7 +50,9 @@ class AuthService:
 
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.get_by_email(email)
-        if not user or not verify_password(password, user.hashed_password):
+        if not user or not await to_thread.run_sync(
+            verify_password, password, user.hashed_password
+        ):
             raise AuthError("Correo o contraseña incorrectos.")
         if not user.is_active:
             raise AuthError("La cuenta está desactivada.")

@@ -10,6 +10,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
 
 from app.api.deps import CurrentUser, DbSession
+from app.core import rate_limit
+from app.core.config import settings
 from app.core.security import decode_token
 from app.schemas.auth import (
     LoginRequest,
@@ -23,17 +25,31 @@ from app.services.auth_service import AuthError, AuthService
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
+async def _limit_login(email: str) -> None:
+    # Por correo y no por IP: un aula entera sale a internet con la misma IP.
+    await rate_limit.enforce(
+        "login",
+        email.strip().lower(),
+        settings.RATE_LIMIT_LOGIN_PER_MIN,
+        "Demasiados intentos de inicio de sesión. Espera un minuto e inténtalo otra vez.",
+    )
+
+
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(data: RegisterRequest, db: DbSession) -> UserRead:
     try:
         user = await AuthService(db).register(data)
     except AuthError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    # Commit antes de responder: el cierre de get_db corre DESPUÉS de enviar la respuesta,
+    # y la siguiente petición del cliente podría leer el estado anterior.
+    await db.commit()
     return UserRead.model_validate(user)
 
 
 @router.post("/login", response_model=TokenPair)
 async def login(data: LoginRequest, db: DbSession) -> TokenPair:
+    await _limit_login(data.email)
     service = AuthService(db)
     try:
         user = await service.authenticate(data.email, data.password)
@@ -47,6 +63,7 @@ async def login_form(
     db: DbSession, form: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> TokenPair:
     """Compatibilidad con el botón *Authorize* de Swagger (OAuth2 password flow)."""
+    await _limit_login(form.username)
     service = AuthService(db)
     try:
         user = await service.authenticate(form.username, form.password)

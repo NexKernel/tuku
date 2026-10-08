@@ -1,6 +1,7 @@
-# PREU Mentor IA
+# Tuku · Aprende a pensar
 
-> Plataforma inteligente de entrenamiento académico para academias preuniversitarias del Perú.
+> Tutor socrático con IA que entrena el pensamiento crítico de niñas y niños de primaria del Perú.
+> Tuku significa "búho" en quechua. Diseño pedagógico: [docs/DISENO_PEDAGOGICO.md](docs/DISENO_PEDAGOGICO.md).
 > **No es un chatbot.** Es un tutor Socrático que desarrolla el razonamiento del estudiante.
 
 [![Backend](https://img.shields.io/badge/backend-FastAPI-009688)]()
@@ -11,9 +12,9 @@
 
 ## Visión
 
-PREU Mentor IA es una plataforma premium de tutoría con IA. El principio pedagógico central:
+Tuku es una plataforma de tutoría con IA para primaria. El principio pedagógico central:
 **la IA nunca resuelve de inmediato**. Guía mediante preguntas socráticas, detecta debilidades
-y se adapta a cada estudiante, imitando a un profesor experto de academia.
+y se adapta al grado de cada niño, cuidando su curiosidad y su seguridad emocional.
 
 ## Stack
 

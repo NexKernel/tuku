@@ -1,11 +1,11 @@
 {
-  "name": "PREU Mentor IA",
-  "short_name": "PREU Mentor",
-  "description": "Tutor Socrático inteligente para academias preuniversitarias.",
+  "name": "Tuku · Aprende a pensar",
+  "short_name": "Tuku",
+  "description": "El búho que ayuda a niñas y niños de primaria a pensar por sí mismos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0b12",
-  "theme_color": "#4f46e5",
+  "background_color": "#fffaf3",
+  "theme_color": "#7c3aed",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
   ]

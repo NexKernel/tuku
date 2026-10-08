@@ -1,16 +1,14 @@
-import { motion } from "framer-motion";
-import {
-  ArrowUp,
-  Lightbulb,
-  Loader2,
-  Plus,
-  Sparkles,
-  Timer,
-  Wand2,
-} from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { Medal, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { MathMarkdown } from "@/components/MathMarkdown";
-import { StepIndicator } from "@/components/StepIndicator";
+import { useLocation } from "react-router-dom";
+import { Celebration } from "@/components/tutor/Celebration";
+import { ChatHeader } from "@/components/tutor/ChatHeader";
+import { ConversationList } from "@/components/tutor/ConversationList";
+import { MessageList, type PendingReply } from "@/components/tutor/MessageList";
+import { ReplyComposer, type AdvancePayload } from "@/components/tutor/ReplyComposer";
+import { StartScreen } from "@/components/tutor/StartScreen";
+import { useSpeak } from "@/hooks/useSpeech";
 import {
   useAdvance,
   useConversation,
@@ -18,31 +16,120 @@ import {
   useStartConversation,
 } from "@/hooks/useTutor";
 import { apiError } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { isCompleted, looksLikeNumberProblem } from "@/lib/thinking";
+import { splitOptions } from "@/lib/tutorText";
+import type { ConversationDetail, ThinkingPath } from "@/lib/types";
+
+const GRADE_KEY = "tuku.grade";
+const AUTOREAD_KEY = "tuku.autoread";
+
+function readStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* almacenamiento no disponible: la preferencia vale solo para esta visita */
+  }
+}
+
+function loadGrade(): number | undefined {
+  const v = Number(readStorage(GRADE_KEY));
+  return v >= 1 && v <= 6 ? v : undefined;
+}
+
+interface TutorLocationState {
+  problem?: string;
+  conversationId?: string;
+}
+
+/** Celebración al completar el camino durante la sesión (no al abrir un reto ya completo). */
+function useCompletionCelebration(convo: ConversationDetail | undefined) {
+  const [celebrate, setCelebrate] = useState(false);
+  const prevStepRef = useRef<{ convoId?: string; step?: string }>({});
+  useEffect(() => {
+    if (!convo) return;
+    const prev = prevStepRef.current;
+    prevStepRef.current = { convoId: convo.id, step: convo.current_step };
+    if (prev.convoId === convo.id && prev.step !== convo.current_step && isCompleted(convo.current_step)) {
+      setCelebrate(true);
+      const t = setTimeout(() => setCelebrate(false), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [convo]);
+  return celebrate;
+}
 
 export function Tutor() {
-  const [activeId, setActiveId] = useState<string | undefined>();
-  const [problem, setProblem] = useState("");
-  const [reply, setReply] = useState("");
+  const location = useLocation();
+  const initial = (location.state ?? {}) as TutorLocationState;
+
+  const [activeId, setActiveId] = useState<string | undefined>(initial.conversationId);
+  const [problem, setProblem] = useState(initial.problem ?? "");
+  // Respuesta enviada que aún espera a Tuku: se muestra al instante en el chat.
+  const [pendingReply, setPendingReply] = useState<PendingReply | null>(null);
+  const [grade, setGrade] = useState<number | undefined>(loadGrade);
+  const [pathChoice, setPathChoice] = useState<ThinkingPath | undefined>();
+  // Sin elección: problema con números → camino problema; 1.º-2.º → rápido (igual que el backend).
+  const path: ThinkingPath =
+    pathChoice ??
+    (looksLikeNumberProblem(problem) ? "problem" : grade !== undefined && grade <= 2 ? "quick" : "full");
+  const [autoRead, setAutoRead] = useState<boolean>(() => {
+    const saved = readStorage(AUTOREAD_KEY);
+    return saved === null ? (loadGrade() ?? 3) <= 2 : saved === "1";
+  });
   const [error, setError] = useState<string | null>(null);
 
   const { data: conversations } = useConversations();
   const { data: convo, isLoading } = useConversation(activeId);
   const start = useStartConversation();
   const advance = useAdvance(activeId ?? "");
+  const { supported: canSpeak, speakingId, speak, stop } = useSpeak();
+  const celebrate = useCompletionCelebration(convo);
 
   const busy = start.isPending || advance.isPending;
-  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Lee en voz alta cada mensaje nuevo de Tuku (no los antiguos al abrir un reto).
+  const seenRef = useRef<{ convoId?: string; msgId?: string }>({});
+  const lastTutor = convo?.messages.filter((msg) => msg.role === "tutor").at(-1);
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [convo?.messages.length, busy]);
+    if (!convo || !lastTutor) return;
+    const seen = seenRef.current;
+    if (seen.convoId === convo.id && seen.msgId !== lastTutor.id && autoRead) {
+      speak(lastTutor.id, splitOptions(lastTutor.content).text);
+    }
+    seenRef.current = { convoId: convo.id, msgId: lastTutor.id };
+  }, [convo, lastTutor, autoRead, speak]);
+
+  function openConversation(id: string | undefined) {
+    stop();
+    setError(null);
+    setActiveId(id);
+  }
+
+  function chooseGrade(g: number) {
+    setGrade(g);
+    writeStorage(GRADE_KEY, String(g));
+  }
+
+  function toggleAutoRead() {
+    const next = !autoRead;
+    setAutoRead(next);
+    writeStorage(AUTOREAD_KEY, next ? "1" : "0");
+    if (!next) stop();
+  }
 
   async function startProblem() {
     if (problem.trim().length < 3) return;
     setError(null);
     try {
-      const created = await start.mutateAsync({ problem });
+      const created = await start.mutateAsync({ problem, grade, path });
       setActiveId(created.id);
       setProblem("");
     } catch (err) {
@@ -50,197 +137,90 @@ export function Tutor() {
     }
   }
 
-  async function send(payload: { message?: string; hint_level?: number }) {
-    if (!activeId) return;
+  async function send(payload: AdvancePayload): Promise<boolean> {
+    if (!activeId) return false;
     setError(null);
+    stop();
+    if (payload.message) setPendingReply({ text: payload.message, confidence: payload.confidence });
     try {
       await advance.mutateAsync(payload);
-      setReply("");
+      return true;
     } catch (err) {
       setError(apiError(err));
+      return false;
+    } finally {
+      setPendingReply(null);
     }
   }
 
   return (
-    <div className="mx-auto grid h-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
-      {/* Historial */}
-      <aside className="hidden lg:block">
-        <button
-          onClick={() => setActiveId(undefined)}
-          className="btn-primary mb-3 w-full"
-        >
-          <Plus size={16} /> Nuevo problema
+    <div className="mx-auto grid h-full max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+      {/* Mis retos (escritorio) */}
+      <aside className="hidden min-h-0 flex-col lg:flex">
+        <button onClick={() => openConversation(undefined)} className="btn-primary mb-3 w-full">
+          <Plus size={18} strokeWidth={3} /> Nuevo reto
         </button>
-        <div className="space-y-1">
-          {conversations?.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActiveId(c.id)}
-              className={cn(
-                "w-full truncate rounded-xl px-3 py-2 text-left text-sm transition",
-                activeId === c.id
-                  ? "bg-brand-500/15 font-medium text-brand-400"
-                  : "text-muted hover:bg-brand-500/10",
-              )}
-            >
-              {c.title}
-            </button>
-          ))}
-          {!conversations?.length && (
-            <p className="px-3 text-xs text-muted">Aún no tienes problemas resueltos.</p>
-          )}
-        </div>
+        <p className="mb-2 px-1 text-xs font-extrabold uppercase tracking-wide text-muted">Mis retos</p>
+        <ConversationList conversations={conversations} activeId={activeId} onOpen={openConversation} />
       </aside>
 
-      {/* Panel del copiloto */}
-      <div className="card flex min-h-0 flex-col overflow-hidden">
+      {/* Panel del tutor */}
+      <div className="card relative flex min-h-0 flex-col overflow-hidden">
         {!activeId ? (
-          <EmptyState
+          <StartScreen
             problem={problem}
             setProblem={setProblem}
+            grade={grade}
+            setGrade={chooseGrade}
+            path={path}
+            setPath={setPathChoice}
             onStart={startProblem}
             busy={busy}
             error={error}
+            conversations={conversations}
+            onOpen={openConversation}
           />
         ) : (
           <>
-            {/* Cabecera con flujo */}
-            <div className="border-b border-[rgb(var(--border))] p-4">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="truncate font-semibold">{convo?.title}</p>
-                <span className="flex items-center gap-1 rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
-                  <Timer size={13} /> {convo?.detected_difficulty ?? "—"}
-                </span>
-              </div>
-              {convo && <StepIndicator current={convo.current_step} />}
-            </div>
-
-            {/* Mensajes */}
-            <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
-              {isLoading && <div className="skeleton h-24" />}
-              {convo?.messages.map((m) => (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3",
-                      m.role === "user"
-                        ? "bg-brand-600 text-white"
-                        : "surface shadow-soft",
-                    )}
-                  >
-                    {m.role === "tutor" ? (
-                      <MathMarkdown content={m.content} />
-                    ) : (
-                      <p className="whitespace-pre-wrap text-sm">{m.content}</p>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-              {busy && (
-                <div className="flex items-center gap-2 text-sm text-muted">
-                  <Loader2 size={15} className="animate-spin" /> El mentor está pensando…
-                </div>
-              )}
-            </div>
-
-            {/* Acciones + composer */}
-            <div className="space-y-3 border-t border-[rgb(var(--border))] p-4">
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3].map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => send({ hint_level: lvl })}
-                    disabled={busy}
-                    className="btn-ghost text-xs"
-                  >
-                    <Lightbulb size={14} /> Pista {lvl}
-                  </button>
-                ))}
-                <button
-                  onClick={() => send({})}
-                  disabled={busy}
-                  className="btn-ghost text-xs"
-                >
-                  <Wand2 size={14} /> Siguiente paso
-                </button>
-              </div>
-
-              {error && <p className="text-sm text-red-500">{error}</p>}
-
-              <div className="flex items-end gap-2">
-                <textarea
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (reply.trim()) send({ message: reply });
-                    }
-                  }}
-                  placeholder="Escribe tu razonamiento… (Enter para enviar)"
-                  rows={1}
-                  className="input max-h-32 min-h-[44px] resize-none"
-                />
-                <button
-                  onClick={() => reply.trim() && send({ message: reply })}
-                  disabled={busy || !reply.trim()}
-                  className="btn-primary h-11 w-11 !p-0"
-                >
-                  <ArrowUp size={18} />
-                </button>
-              </div>
-            </div>
+            <ChatHeader
+              convo={convo}
+              canSpeak={canSpeak}
+              autoRead={autoRead}
+              onToggleAutoRead={toggleAutoRead}
+              onNew={() => openConversation(undefined)}
+            />
+            <MessageList
+              messages={convo?.messages}
+              pendingReply={pendingReply}
+              busy={busy}
+              isLoading={isLoading}
+              speech={{ canSpeak, speakingId, speak, stop }}
+            />
+            {convo && isCompleted(convo.current_step) && (
+              <CompletedBanner onNew={() => openConversation(undefined)} />
+            )}
+            {/* key: cada reto empieza con su propio borrador y sin seguridad elegida. */}
+            <ReplyComposer key={activeId} convo={convo} busy={busy} error={error} onSend={send} />
           </>
         )}
+
+        <AnimatePresence>{celebrate && <Celebration />}</AnimatePresence>
       </div>
     </div>
   );
 }
 
-function EmptyState({
-  problem,
-  setProblem,
-  onStart,
-  busy,
-  error,
-}: {
-  problem: string;
-  setProblem: (v: string) => void;
-  onStart: () => void;
-  busy: boolean;
-  error: string | null;
-}) {
+function CompletedBanner({ onNew }: { onNew: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-glow">
-        <Sparkles size={28} />
-      </div>
-      <div>
-        <h2 className="text-2xl font-extrabold">¿Qué problema resolvemos hoy?</h2>
-        <p className="mt-1 max-w-md text-sm text-muted">
-          Pega tu ejercicio. No te daré la respuesta de inmediato: te guiaré paso a paso
-          para que la descubras tú.
-        </p>
-      </div>
-      <div className="w-full max-w-xl space-y-3">
-        <textarea
-          value={problem}
-          onChange={(e) => setProblem(e.target.value)}
-          placeholder="Ej: Si 2x + 3 = 15, ¿cuál es el valor de x² − 1?"
-          rows={4}
-          className="input resize-none text-left"
-        />
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <button onClick={onStart} disabled={busy || problem.trim().length < 3} className="btn-primary w-full">
-          {busy ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          Empezar con el tutor
-        </button>
-      </div>
+    <div className="mx-3 mb-1 flex items-center gap-2 rounded-2xl bg-emerald-500/10 px-3 py-1.5 ring-1 ring-emerald-500/30 sm:mx-4 sm:gap-3 sm:py-2">
+      <Medal className="shrink-0 text-emerald-600 dark:text-emerald-400" size={24} />
+      <p className="flex-1 text-sm font-bold">
+        ¡Camino completo!
+        <span className="hidden sm:inline"> Responde el nuevo reto o empieza otro.</span>
+      </p>
+      <button onClick={onNew} className="btn-ghost !min-h-[36px] shrink-0 !text-emerald-700 dark:!text-emerald-300">
+        <Plus size={16} /> Otro reto
+      </button>
     </div>
   );
 }

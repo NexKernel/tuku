@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AITurnLimit, CurrentUser, DbSession
 from app.domain.models.tutor import Conversation
 from app.schemas.tutor import (
     AdvanceRequest,
@@ -36,13 +36,19 @@ async def list_conversations(user: CurrentUser, db: DbSession) -> list[Conversat
     "/conversations",
     response_model=ConversationDetail,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[AITurnLimit],
 )
 async def start_conversation(
     data: StartConversationRequest, user: CurrentUser, db: DbSession
 ) -> ConversationDetail:
     service = TutorService(db)
-    convo = await service.start_conversation(user.id, data.problem, data.title)
-    await service.advance(convo)  # primer turno del tutor (paso 1)
+    convo = await service.start_conversation(
+        user.id, data.problem, data.title, data.grade, data.path
+    )
+    await service.advance(convo)  # primer turno del tutor
+    # Commit antes de responder: el cierre de get_db corre DESPUÉS de enviar la respuesta,
+    # y la siguiente petición del cliente podría leer el estado anterior.
+    await db.commit()
     await db.refresh(convo, ["messages"])
     return ConversationDetail.model_validate(convo)
 
@@ -59,7 +65,9 @@ async def get_conversation(
     return ConversationDetail.model_validate(convo)
 
 
-@router.post("/conversations/{convo_id}/advance", response_model=MessageRead)
+@router.post(
+    "/conversations/{convo_id}/advance", response_model=MessageRead, dependencies=[AITurnLimit]
+)
 async def advance_conversation(
     convo_id: uuid.UUID, data: AdvanceRequest, user: CurrentUser, db: DbSession
 ) -> MessageRead:
@@ -67,5 +75,10 @@ async def advance_conversation(
     convo = await service.get_conversation(convo_id, user.id)
     if convo is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversación no encontrada.")
-    msg = await service.advance(convo, data.message, data.hint_level)
+    msg = await service.advance(
+        convo, data.message, data.hint_level, data.confidence, tired=data.tired
+    )
+    # Commit antes de responder: el cierre de get_db corre DESPUÉS de enviar la respuesta,
+    # y la siguiente petición del cliente podría leer el estado anterior.
+    await db.commit()
     return MessageRead.model_validate(msg)

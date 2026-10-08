@@ -1,69 +1,102 @@
-# PREU Mentor IA — despliegue en Dokploy
-# Usa el PostgreSQL que ya creaste en Dokploy (no levanta su propia BD).
-# Las variables reales se definen en la pestaña "Environment" del stack en Dokploy.
+# ==============================================================================
+# Tuku — Compose para Dokploy (servidor compartido con otros stacks)
+# ------------------------------------------------------------------------------
+# - TODO lleva el prefijo "tuku-" (servicios, red, volumen, routers Traefik): en
+#   dokploy-network el DNS resuelve por nombre en todos los stacks, y un nombre
+#   repetido haría que nuestro nginx hable con el backend de OTRA app.
+# - NO levanta Postgres: usa la BD creada como servicio en Dokploy (DATABASE_URL).
+# - No publica puertos: Traefik enruta por labels a tuku.ose.lat con HTTPS.
+# - Valores reales en Dokploy → App → Environment (ver .env.production.example).
 #
-# Nombres de servicio con prefijo "socratico-" para no colisionar con otros
-# proyectos en la red compartida dokploy-network.
-#
-# Dominios (pestaña "Domains" de Dokploy):
-#   socratico-frontend → puerto 80    (ej. mentor.tudominio.com)
-#   socratico-backend  → puerto 8000  (ej. api.mentor.tudominio.com)
+# Dominio:  tuku.ose.lat
+# Repo:     https://github.com/NexKernel/tuku.git
+# ==============================================================================
 
 services:
-  socratico-backend:
+  tuku-backend:
     build: ./backend
     restart: unless-stopped
     environment:
-      # Pega la cadena de tu BD de Dokploy en la variable DATABASE_URL del panel.
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: redis://socratico-redis:6379/0
-      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL:?Definir DATABASE_URL en Environment de Dokploy}
+      SECRET_KEY: ${SECRET_KEY:?Definir SECRET_KEY en Environment de Dokploy}
+      REDIS_URL: redis://tuku-redis:6379/0
       ENVIRONMENT: production
       DEBUG: "false"
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
-      AI_PROVIDER: ${AI_PROVIDER:-echo}
-      AI_MODEL: ${AI_MODEL:-gpt-4o}
+      TZ: America/Lima
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://tuku.ose.lat}
+      # Usuario demo con contraseña pública: solo para pruebas, nunca en producción real.
+      SEED_DEMO_USER: ${SEED_DEMO_USER:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-deepseek}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-    expose:
-      - "8000"
+      # ── Capacidad (ver docs/DEPLOY_DOKPLOY.md › "Alta demanda") ──
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+      AI_MAX_CONCURRENCY: ${AI_MAX_CONCURRENCY:-12}
+      AI_QUEUE_TIMEOUT: ${AI_QUEUE_TIMEOUT:-30}
+      AI_REQUEST_TIMEOUT: ${AI_REQUEST_TIMEOUT:-60}
+      RATE_LIMIT_LOGIN_PER_MIN: ${RATE_LIMIT_LOGIN_PER_MIN:-10}
+      RATE_LIMIT_TUTOR_PER_MIN: ${RATE_LIMIT_TUTOR_PER_MIN:-20}
     depends_on:
-      - socratico-redis
+      - tuku-redis
     networks:
-      - dokploy-network
+      - dokploy-network   # para alcanzar el Postgres de Dokploy
+      - tuku-internal     # frontend y redis
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
-  socratico-frontend:
+  tuku-frontend:
     build:
       context: ./frontend
       args:
-        # Ruta relativa same-origin: el Nginx del frontend hace proxy /api → backend.
-        # Con un solo dominio no hay CORS. (Déjalo en /api/v1.)
-        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        # Ruta same-origin: el nginx del frontend hace proxy /api → tuku-backend (sin CORS).
+        VITE_API_URL: /api/v1
     restart: unless-stopped
-    expose:
-      - "80"
     depends_on:
-      - socratico-backend
+      tuku-backend:
+        condition: service_healthy
     networks:
-      - dokploy-network
+      - dokploy-network   # para que Traefik lo enrute
+      - tuku-internal     # para alcanzar el backend
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      # --- HTTPS (443) ---
+      - traefik.http.routers.tuku-frontend.rule=Host(`tuku.ose.lat`)
+      - traefik.http.routers.tuku-frontend.entrypoints=websecure
+      - traefik.http.routers.tuku-frontend.tls=true
+      - traefik.http.routers.tuku-frontend.tls.certresolver=letsencrypt
+      - traefik.http.services.tuku-frontend.loadbalancer.server.port=80
+      # --- HTTP (80) → redirige a HTTPS ---
+      - traefik.http.routers.tuku-frontend-web.rule=Host(`tuku.ose.lat`)
+      - traefik.http.routers.tuku-frontend-web.entrypoints=web
+      - traefik.http.routers.tuku-frontend-web.middlewares=tuku-redirect-https
+      - traefik.http.middlewares.tuku-redirect-https.redirectscheme.scheme=https
 
-  socratico-redis:
+  tuku-redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    # Solo guarda contadores de límite de uso: memoria acotada y expulsa lo más viejo.
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     volumes:
-      - socratico_redis_data:/data
+      - tuku_redis_data:/data
     networks:
-      - dokploy-network
+      - tuku-internal     # solo red interna: no la ve ningún otro stack
 
-volumes:
-  socratico_redis_data:
-
-# Red compartida de Dokploy: permite alcanzar el PostgreSQL externo
-# (socratico-postgresql-...) y que Traefik enrute los dominios.
 networks:
   dokploy-network:
     external: true
+  tuku-internal:
+    driver: bridge
+
+volumes:
+  tuku_redis_data:

@@ -18,23 +18,25 @@ class Difficulty(StrEnum):
 
 
 class TutorStep(StrEnum):
-    """Los 15 pasos obligatorios del flujo del tutor Socrático."""
+    """Pasos del flujo de pensamiento de primaria.
 
-    DETECT_TOPIC = "detect_topic"
-    DETECT_SUBTOPIC = "detect_subtopic"
-    DETECT_DIFFICULTY = "detect_difficulty"
-    DETECT_COMPETENCIES = "detect_competencies"
-    EXTRACT_DATA = "extract_data"
-    EXPLAIN_STRATEGY = "explain_strategy"
-    SOCRATIC_QUESTIONS = "socratic_questions"
-    AWAIT_RESPONSE = "await_response"
-    FEEDBACK = "feedback"
+    El orden de cada camino vive en `prompts.PATHS`, no en el orden de esta enumeración.
+    """
+
+    CURIOSITY = "curiosity"
+    UNDERSTAND = "understand"
+    HYPOTHESIS = "hypothesis"
+    REASONING = "reasoning"
+    EVIDENCE = "evidence"
+    PERSPECTIVES = "perspectives"
+    CONCLUSION = "conclusion"
+    METACOGNITION = "metacognition"
+    TRANSFER = "transfer"
+    # Camino "problema" (matemática): estimar → planear sin calcular → calcular → revisar.
+    ESTIMATE = "estimate"
+    PLAN = "plan"
     SOLVE = "solve"
-    SHORT_METHOD = "short_method"
-    ELIMINATION_METHOD = "elimination_method"
-    COMMON_ERROR = "common_error"
-    SIMILAR_EXERCISE = "similar_exercise"
-    REGISTER_PERFORMANCE = "register_performance"
+    CHECK = "check"
 
 
 class MessageRole(StrEnum):

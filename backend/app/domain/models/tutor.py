@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,8 +34,12 @@ class Conversation(Entity):
         Enum(Difficulty, name="difficulty"), nullable=True
     )
     current_step: Mapped[TutorStep] = mapped_column(
-        Enum(TutorStep, name="tutor_step"), default=TutorStep.DETECT_TOPIC, nullable=False
+        Enum(TutorStep, name="tutor_step"), default=TutorStep.CURIOSITY, nullable=False
     )
+    # Grado de primaria (1-6): ajusta lenguaje y tipo de pensamiento del tutor.
+    grade: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # Camino elegido: "quick" (6 pasos), "full" (9) o "problem" (7). Ver prompts.PATHS.
+    path: Mapped[str] = mapped_column(String(10), default="full", server_default="full", nullable=False)
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="conversations")
@@ -61,6 +65,11 @@ class Message(Entity):
     meta: Mapped[dict | None] = mapped_column(JSONB, default=dict)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+    @property
+    def confidence(self) -> int | None:
+        """Seguridad (1-3) que el niño marcó al responder, si la marcó."""
+        return (self.meta or {}).get("confidence")
 
 
 class Attempt(Entity):

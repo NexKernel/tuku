@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import rate_limit
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_token
@@ -47,6 +48,19 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def limit_ai_turns(user: CurrentUser) -> None:
+    """Tope de turnos con IA por niño y minuto: protege la cuota de IA en los picos."""
+    await rate_limit.enforce(
+        "ai",
+        str(user.id),
+        settings.RATE_LIMIT_TUTOR_PER_MIN,
+        "¡Vas muy rápido! Tuku necesita un respiro: espera un ratito y vuelve a intentarlo.",
+    )
+
+
+AITurnLimit = Depends(limit_ai_turns)
 
 
 def require_roles(*roles: UserRole):

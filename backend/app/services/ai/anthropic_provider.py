@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from anthropic import AsyncAnthropic
 
+from app.core.config import settings
 from app.services.ai.base import AICompletion, ChatMessage
 
 
 class AnthropicProvider:
     def __init__(self, api_key: str, model: str) -> None:
-        self._client = AsyncAnthropic(api_key=api_key)
+        self._client = AsyncAnthropic(
+            api_key=api_key,
+            timeout=settings.AI_REQUEST_TIMEOUT,
+            max_retries=settings.AI_MAX_RETRIES,  # reintenta 429/5xx con backoff
+        )
         self.model = model
 
     async def complete(

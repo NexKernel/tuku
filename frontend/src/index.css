@@ -4,18 +4,18 @@
 
 @layer base {
   :root {
-    --bg: 250 250 252;
+    --bg: 255 250 243;
     --surface: 255 255 255;
-    --border: 228 228 235;
-    --text: 17 17 27;
-    --muted: 113 113 130;
+    --border: 236 228 216;
+    --text: 35 27 46;
+    --muted: 110 100 120;
   }
   .dark {
-    --bg: 11 11 18;
-    --surface: 20 20 30;
-    --border: 39 39 52;
-    --text: 237 237 245;
-    --muted: 140 140 160;
+    --bg: 18 14 28;
+    --surface: 30 24 44;
+    --border: 52 44 70;
+    --text: 240 236 248;
+    --muted: 165 156 185;
   }
   html,
   body,
@@ -27,6 +27,18 @@
     background: rgb(var(--bg));
     color: rgb(var(--text));
   }
+  /* Foco siempre visible: navegación con teclado y lectores de pantalla. */
+  :focus-visible {
+    @apply outline-none ring-4 ring-brand-500/40;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
@@ -35,7 +47,7 @@
     border: 1px solid rgb(var(--border));
   }
   .glass {
-    background: rgb(var(--surface) / 0.7);
+    background: rgb(var(--surface) / 0.8);
     backdrop-filter: blur(12px);
     border: 1px solid rgb(var(--border) / 0.6);
   }
@@ -43,28 +55,51 @@
     color: rgb(var(--muted));
   }
   .card {
-    @apply surface rounded-2xl shadow-soft;
+    @apply surface rounded-3xl shadow-soft;
   }
+  /* Botones grandes (≥44px): dedos pequeños y pantallas táctiles. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5
-           text-sm font-semibold text-white transition
-           hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5
+           text-base font-extrabold text-white shadow-pop transition
+           hover:bg-brand-500 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:active:translate-y-0;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm
-           font-medium text-muted transition hover:bg-brand-500/10 hover:text-brand-500;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm
+           font-bold text-muted transition hover:bg-brand-500/10 hover:text-brand-600 disabled:opacity-50
+           dark:hover:text-brand-300;
+  }
+  .btn-soft {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border-2 border-[rgb(var(--border))]
+           bg-[rgb(var(--surface))] px-3.5 py-2 text-sm font-bold transition
+           hover:border-brand-400 hover:bg-brand-500/5 active:translate-y-0.5 disabled:opacity-50;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))]
+           px-3 py-1.5 text-sm font-semibold text-muted transition hover:border-brand-400 hover:text-brand-600
+           dark:hover:text-brand-300;
   }
   .input {
-    @apply w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2.5
-           text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+    @apply w-full rounded-2xl border-2 border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-4 py-3
+           text-base outline-none transition placeholder:text-[rgb(var(--muted))]
+           focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15;
   }
   .skeleton {
-    @apply relative overflow-hidden rounded-lg bg-[rgb(var(--border))];
+    @apply relative overflow-hidden rounded-2xl bg-[rgb(var(--border))];
   }
   .skeleton::after {
     @apply absolute inset-0 -translate-x-full animate-shimmer;
     content: "";
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+  }
+}
+
+@layer utilities {
+  /* Filas deslizables con el dedo, sin barra visible. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

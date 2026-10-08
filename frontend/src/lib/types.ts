@@ -17,21 +17,22 @@ export interface TokenPair {
 }
 
 export type TutorStep =
-  | "detect_topic"
-  | "detect_subtopic"
-  | "detect_difficulty"
-  | "detect_competencies"
-  | "extract_data"
-  | "explain_strategy"
-  | "socratic_questions"
-  | "await_response"
-  | "feedback"
+  | "curiosity"
+  | "understand"
+  | "hypothesis"
+  | "reasoning"
+  | "evidence"
+  | "perspectives"
+  | "conclusion"
+  | "metacognition"
+  | "transfer"
+  // Camino "problema" (matemática)
+  | "estimate"
+  | "plan"
   | "solve"
-  | "short_method"
-  | "elimination_method"
-  | "common_error"
-  | "similar_exercise"
-  | "register_performance";
+  | "check";
+
+export type ThinkingPath = "quick" | "full" | "problem";
 
 export type MessageRole = "user" | "tutor" | "system";
 
@@ -40,6 +41,8 @@ export interface Message {
   role: MessageRole;
   content: string;
   step: TutorStep | null;
+  /** Seguridad que marcó el niño (1 poco, 2 más o menos, 3 muy seguro). */
+  confidence?: number | null;
   created_at: string;
 }
 
@@ -50,6 +53,9 @@ export interface Conversation {
   detected_topic: string | null;
   detected_difficulty: string | null;
   current_step: TutorStep;
+  grade: number | null;
+  /** "quick" = rápido (6 pasos), "full" = explorador (9), "problem" = problema con números (7). */
+  path: ThinkingPath;
   is_favorite: boolean;
   created_at: string;
 }
@@ -66,4 +72,22 @@ export interface Subject {
   icon: string | null;
   color: string | null;
   created_at: string;
+}
+
+export interface Review {
+  id: string;
+  conversation_id: string;
+  conversation_title: string;
+  /** 1 recordar · 2 aplicar · 3 enseñar */
+  round: number;
+  due_at: string;
+  question: string | null;
+  answer: string | null;
+  feedback: string | null;
+  completed_at: string | null;
+}
+
+export interface ReviewOverview {
+  due: Review[];
+  completed: number;
 }

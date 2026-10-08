@@ -1,3 +1,3 @@
-"""PREU Mentor IA — backend."""
+"""Tuku — backend."""
 
 __version__ = "0.1.0"

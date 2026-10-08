@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from openai import AsyncOpenAI
 
+from app.core.config import settings
 from app.services.ai.base import AICompletion, ChatMessage
 
 
 class OpenAIProvider:
     def __init__(self, api_key: str, model: str, base_url: str | None = None) -> None:
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=settings.AI_REQUEST_TIMEOUT,
+            max_retries=settings.AI_MAX_RETRIES,  # reintenta 429/5xx con backoff
+        )
         self.model = model
 
     async def complete(

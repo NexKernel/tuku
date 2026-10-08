@@ -5,25 +5,28 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        // Nunito: redondeada y muy legible para lectores que recién empiezan.
+        sans: ["Nunito", "system-ui", "sans-serif"],
       },
       colors: {
+        // Violeta cálido: curiosidad e imaginación, con buen contraste sobre blanco.
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
+          50: "#f5f3ff",
+          100: "#ede9fe",
+          200: "#ddd6fe",
+          300: "#c4b5fd",
+          400: "#a78bfa",
+          500: "#8b5cf6",
+          600: "#7c3aed",
+          700: "#6d28d9",
+          800: "#5b21b6",
+          900: "#4c1d95",
         },
       },
       boxShadow: {
-        soft: "0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 24px -4px rgb(0 0 0 / 0.06)",
-        glow: "0 0 0 1px rgb(99 102 241 / 0.15), 0 8px 32px -8px rgb(99 102 241 / 0.35)",
+        soft: "0 2px 8px -2px rgb(0 0 0 / 0.06), 0 6px 24px -6px rgb(0 0 0 / 0.08)",
+        glow: "0 0 0 1px rgb(124 58 237 / 0.15), 0 8px 28px -8px rgb(124 58 237 / 0.45)",
+        pop: "0 4px 0 0 rgb(0 0 0 / 0.12)",
       },
       keyframes: {
         "fade-up": {

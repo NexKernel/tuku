@@ -1,4 +1,4 @@
-# PREU Mentor IA — atajos de desarrollo y despliegue
+# Tuku — atajos de desarrollo y despliegue
 .DEFAULT_GOAL := help
 .PHONY: help install install-back install-front infra migrate seed dev-back dev-front test build up down logs
 

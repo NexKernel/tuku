@@ -1,7 +1,7 @@
-# PREU Mentor IA — orquestación completa (desarrollo local)
-# Nombres con prefijo "socratico-" para no colisionar con otros proyectos.
+# Tuku — orquestación completa (desarrollo local)
+# Nombres con prefijo "tuku-" para no colisionar con otros proyectos.
 services:
-  socratico-db:
+  tuku-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 10
 
-  socratico-redis:
+  tuku-redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
@@ -27,7 +27,7 @@ services:
     ports:
       - "6379:6379"
 
-  socratico-minio:
+  tuku-minio:
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -40,20 +40,20 @@ services:
       - "9000:9000"
       - "9001:9001"
 
-  socratico-backend:
+  tuku-backend:
     build: ./backend
     restart: unless-stopped
     depends_on:
-      socratico-db:
+      tuku-db:
         condition: service_healthy
-      socratico-redis:
+      tuku-redis:
         condition: service_started
     environment:
-      POSTGRES_HOST: socratico-db
+      POSTGRES_HOST: tuku-db
       POSTGRES_USER: ${POSTGRES_USER:-preu}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-preu_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-preu_mentor}
-      REDIS_URL: redis://socratico-redis:6379/0
+      REDIS_URL: redis://tuku-redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost}
       AI_PROVIDER: ${AI_PROVIDER:-echo}
@@ -67,7 +67,7 @@ services:
     ports:
       - "8000:8000"
 
-  socratico-frontend:
+  tuku-frontend:
     build:
       context: ./frontend
       args:
@@ -75,7 +75,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
     restart: unless-stopped
     depends_on:
-      - socratico-backend
+      - tuku-backend
     ports:
       - "80:80"
 

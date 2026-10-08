@@ -15,6 +15,16 @@ engine = create_async_engine(
     echo=settings.DEBUG and settings.ENVIRONMENT == "development",
     pool_pre_ping=True,
     future=True,
+    **(
+        {}
+        if settings.sqlalchemy_dsn.startswith("sqlite")
+        else {
+            "pool_size": settings.DB_POOL_SIZE,
+            "max_overflow": settings.DB_MAX_OVERFLOW,
+            "pool_timeout": settings.DB_POOL_TIMEOUT,
+            "pool_recycle": settings.DB_POOL_RECYCLE,
+        }
+    ),
 )
 
 AsyncSessionLocal = async_sessionmaker(
