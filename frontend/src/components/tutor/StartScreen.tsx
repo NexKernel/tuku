@@ -2,7 +2,7 @@ import { Calculator, Compass, Loader2, Sparkles, Zap } from "lucide-react";
 import { useState } from "react";
 import { TukuOwl } from "@/components/TukuOwl";
 import { useDictation } from "@/hooks/useSpeech";
-import { AREAS } from "@/lib/thinking";
+import { AREAS, challengesFor } from "@/lib/thinking";
 import type { Conversation, ThinkingPath } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ConversationList } from "./ConversationList";
@@ -171,16 +171,19 @@ export function StartScreen({
             ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            {area.challenges.map((c) => (
+            {challengesFor(area, grade).map((c) => (
               <button
-                key={c}
-                onClick={() => setProblem(c)}
+                key={c.text}
+                onClick={() => setProblem(c.text)}
                 className="flex items-start gap-2.5 rounded-2xl border-2 border-[rgb(var(--border))] p-3 text-left text-sm font-semibold transition hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-soft"
               >
                 <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", area.tint)}>
                   <area.icon size={16} />
                 </span>
-                {c}
+                <span className="flex-1">
+                  {c.text}
+                  <span className="mt-0.5 block text-[11px] font-semibold text-muted">{c.competency}</span>
+                </span>
               </button>
             ))}
           </div>

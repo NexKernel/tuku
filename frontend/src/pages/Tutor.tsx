@@ -16,11 +16,10 @@ import {
   useStartConversation,
 } from "@/hooks/useTutor";
 import { apiError } from "@/lib/api";
-import { isCompleted, looksLikeNumberProblem } from "@/lib/thinking";
+import { isCompleted, loadGrade, looksLikeNumberProblem, saveGrade } from "@/lib/thinking";
 import { splitOptions } from "@/lib/tutorText";
 import type { ConversationDetail, ThinkingPath } from "@/lib/types";
 
-const GRADE_KEY = "tuku.grade";
 const AUTOREAD_KEY = "tuku.autoread";
 
 function readStorage(key: string): string | null {
@@ -37,11 +36,6 @@ function writeStorage(key: string, value: string) {
   } catch {
     /* almacenamiento no disponible: la preferencia vale solo para esta visita */
   }
-}
-
-function loadGrade(): number | undefined {
-  const v = Number(readStorage(GRADE_KEY));
-  return v >= 1 && v <= 6 ? v : undefined;
 }
 
 interface TutorLocationState {
@@ -120,7 +114,7 @@ export function Tutor() {
 
   function chooseGrade(g: number) {
     setGrade(g);
-    writeStorage(GRADE_KEY, String(g));
+    saveGrade(g);
   }
 
   function toggleAutoRead() {

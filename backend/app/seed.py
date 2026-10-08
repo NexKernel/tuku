@@ -17,9 +17,8 @@ from app.domain.enums import UserRole
 from app.domain.models.academic import Subject
 from app.domain.models.user import StudentProfile, User
 
-# Áreas del Currículo Nacional de Educación Básica (primaria) + pensamiento crítico.
+# Áreas del Currículo Nacional de Educación Básica (primaria) + competencias transversales.
 SUBJECTS: list[tuple[str, str, str, str]] = [
-    ("Pensamiento Crítico", "pensamiento-critico", "brain", "#6366f1"),
     ("Matemática", "matematica", "calculator", "#3b82f6"),
     ("Comunicación", "comunicacion", "book-open", "#a855f7"),
     ("Ciencia y Tecnología", "ciencia-tecnologia", "flask-conical", "#14b8a6"),
@@ -28,6 +27,7 @@ SUBJECTS: list[tuple[str, str, str, str]] = [
     ("Educación Física", "educacion-fisica", "activity", "#22c55e"),
     ("Inglés", "ingles", "languages", "#06b6d4"),
     ("Educación Religiosa", "educacion-religiosa", "heart", "#f43f5e"),
+    ("TIC y aprender a aprender", "competencias-transversales", "monitor-smartphone", "#8b5cf6"),
 ]
 
 DEMO_EMAIL = "estudiante@preu.pe"

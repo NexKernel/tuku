@@ -17,7 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ReviewSession } from "@/components/ReviewSession";
 import { TukuOwl } from "@/components/TukuOwl";
 import { useConversations, useReviews } from "@/hooks/useTutor";
-import { computeBadges, dailyChallenge, hasDone, isCompleted, progressOf } from "@/lib/thinking";
+import { computeBadges, dailyChallenge, hasDone, isCompleted, loadGrade, progressOf } from "@/lib/thinking";
 import type { TutorStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
@@ -42,7 +42,7 @@ export function Dashboard() {
   const dueReviews = reviews?.due ?? [];
 
   const firstName = user?.full_name?.split(" ")[0] ?? "pensador";
-  const today = dailyChallenge();
+  const today = dailyChallenge(new Date(), loadGrade());
   const pending = conversations.find((c) => !isCompleted(c.current_step));
   const completed = conversations.filter((c) => isCompleted(c.current_step)).length;
   const days = new Set(conversations.map((c) => c.created_at.slice(0, 10))).size;
