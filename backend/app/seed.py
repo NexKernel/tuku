@@ -60,7 +60,23 @@ async def seed() -> None:
             demo.profile = StudentProfile(level=3, xp=1240, coins=85, current_streak=5)
             db.add(demo)
 
+        # Superadmin: solo los correos de SUPERADMIN_EMAIL (cuentas ya registradas).
+        promoted: list[str] = []
+        for email in settings.superadmin_emails:
+            user = (
+                await db.execute(select(User).where(User.email == email))
+            ).scalar_one_or_none()
+            if user is None:
+                print(f"[!] SUPERADMIN_EMAIL {email}: regístrate primero y reinicia el backend.")
+                continue
+            if user.role != UserRole.SUPERADMIN or not user.is_active:
+                user.role = UserRole.SUPERADMIN
+                user.is_active = True
+                promoted.append(email)
+
         await db.commit()
+        if promoted:
+            print(f"[OK] Superadmin: {', '.join(promoted)}")
         demo_info = f"{DEMO_EMAIL} / {DEMO_PASSWORD}" if settings.SEED_DEMO_USER else "desactivado"
         print(f"[OK] Materias nuevas: {created} | Usuario demo: {demo_info}")
 

@@ -3,7 +3,9 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { SuperAdminRoute } from "@/components/SuperAdminRoute";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { Admin } from "@/pages/Admin";
 import { Dashboard } from "@/pages/Dashboard";
 import { Explorar } from "@/pages/Explorar";
 import { Login } from "@/pages/Login";
@@ -33,6 +35,9 @@ export default function App() {
             <Route path="tutor" element={<Tutor />} />
             <Route path="explorar" element={<Explorar />} />
             <Route path="logros" element={<Logros />} />
+            <Route element={<SuperAdminRoute />}>
+              <Route path="admin" element={<Admin />} />
+            </Route>
             <Route path="materias" element={<Navigate to="/explorar" replace />} />
             <Route path="ranking" element={<Navigate to="/logros" replace />} />
           </Route>

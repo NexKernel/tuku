@@ -19,6 +19,7 @@ from app.domain.enums import MessageRole
 from app.domain.models.review import Review
 from app.domain.models.tutor import Conversation, Message
 from app.services.ai import ChatMessage, build_ai_provider
+from app.services.usage import record_usage
 from app.services.ai.prompts import (
     REVIEW_FEEDBACK_INSTRUCTION,
     REVIEW_QUESTION_INSTRUCTION,
@@ -100,7 +101,7 @@ class ReviewService:
             round_goal=REVIEW_ROUNDS.get(review.round, REVIEW_ROUNDS[1]),
             transcript=await self._transcript(review.conversation_id),
         )
-        review.question = await self._ask(convo, instruction, max_tokens=250)
+        review.question = await self._ask(review.user_id, convo, instruction, max_tokens=250)
         await self.db.flush()
         return review
 
@@ -115,7 +116,7 @@ class ReviewService:
             transcript=await self._transcript(review.conversation_id),
         )
         review.answer = answer
-        review.feedback = await self._ask(convo, instruction, max_tokens=300)
+        review.feedback = await self._ask(review.user_id, convo, instruction, max_tokens=300)
         review.completed_at = datetime.now(UTC)
 
         nxt = next_review_due(review.round, review.completed_at)
@@ -143,11 +144,18 @@ class ReviewService:
             f"{'Tuku' if m.role == MessageRole.TUTOR else 'Niño'}: {m.content}" for m in rows
         )
 
-    async def _ask(self, convo: Conversation | None, instruction: str, max_tokens: int) -> str:
+    async def _ask(
+        self,
+        user_id: uuid.UUID,
+        convo: Conversation | None,
+        instruction: str,
+        max_tokens: int,
+    ) -> str:
         completion = await build_ai_provider().complete(
             system=build_system_prompt(convo.grade if convo else None),
             messages=[ChatMessage(role="user", content=f"[INSTRUCCIÓN INTERNA] {instruction}")],
             max_tokens=max_tokens,
             temperature=0.6,
         )
+        record_usage(self.db, user_id, "review", completion)
         return completion.text

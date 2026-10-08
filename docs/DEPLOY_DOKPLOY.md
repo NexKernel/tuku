@@ -98,7 +98,22 @@ Luego entra a `https://tuku.ose.lat`, regístrate y empieza un reto.
 - **El backend no arranca (unhealthy):** casi siempre `DATABASE_URL` (host interno, usuario
   o contraseña). Míralo en los logs de `tuku-backend`.
 
-## 8. Alta demanda (muchos niños el mismo día)
+## 8. Panel de superadmin (`/admin`)
+
+Solo para las cuentas de `SUPERADMIN_EMAIL`; nadie puede darse ese rol desde la app.
+
+1. Regístrate en `https://tuku.ose.lat` con tu correo.
+2. En Dokploy → Environment: `SUPERADMIN_EMAIL=tu@correo.com` → **Deploy**.
+3. Al arrancar, el log muestra `[OK] Superadmin: tu@correo.com`. Vuelve a entrar y verás
+   **Admin** en el menú.
+
+El panel muestra registros (total, hoy, 7 días, por día), tokens de IA consumidos (entrada,
+salida, por día y por usuario) y permite habilitar/desactivar cuentas una a una, por
+selección o todas a la vez. Con **Aprobar registros nuevos** activo, las cuentas nacen
+desactivadas hasta que las habilites. Desactivar a alguien lo saca al instante, aunque
+tenga la sesión abierta. Los días se cuentan en hora de Lima.
+
+## 9. Alta demanda (muchos niños el mismo día)
 
 El backend arranca con **4 procesos** de Uvicorn y está preparado para picos de uso, como
 un colegio entero que entra a la misma hora:

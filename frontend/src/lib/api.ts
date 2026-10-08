@@ -23,7 +23,18 @@ api.interceptors.response.use(
     const original = error.config;
     const { refreshToken, setTokens, logout } = useAuthStore.getState();
 
-    if (error.response?.status === 401 && original && !(original as any)._retry && refreshToken) {
+    // Un 401 de las propias rutas de sesión no se reintenta: si /auth/refresh falla y
+    // volviera a entrar aquí, esperaría su propia promesa y la app quedaría colgada en
+    // "cargando" (pasa con un refresh vencido o una cuenta desactivada por el admin).
+    const isAuthCall = /\/auth\/(refresh|login|token)$/.test(original?.url ?? "");
+
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !isAuthCall &&
+      !(original as any)._retry &&
+      refreshToken
+    ) {
       (original as any)._retry = true;
       refreshing ??= api
         .post<TokenPair>("/auth/refresh", { refresh_token: refreshToken })

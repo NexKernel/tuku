@@ -16,6 +16,7 @@ from app.core.security import (
 )
 from app.domain.models.user import StudentProfile, User
 from app.schemas.auth import RegisterRequest, TokenPair
+from app.services.admin_service import AdminService
 
 
 class AuthError(Exception):
@@ -44,6 +45,9 @@ class AuthService:
             full_name=data.full_name,
         )
         user.profile = StudentProfile()
+        # Con "aprobar registros" activo en el panel, la cuenta nace desactivada.
+        if await AdminService(self.db).require_approval():
+            user.is_active = False
         self.db.add(user)
         await self.db.flush()
         return user
@@ -55,7 +59,9 @@ class AuthService:
         ):
             raise AuthError("Correo o contraseña incorrectos.")
         if not user.is_active:
-            raise AuthError("La cuenta está desactivada.")
+            raise AuthError(
+                "Tu cuenta todavía no está habilitada. Pide al administrador que la active."
+            )
         return user
 
     @staticmethod

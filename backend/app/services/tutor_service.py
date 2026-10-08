@@ -30,6 +30,7 @@ from app.services.ai.prompts import (
     path_steps,
 )
 from app.services.review_service import ReviewService
+from app.services.usage import record_usage
 
 _HISTORY_LIMIT = 20
 
@@ -200,12 +201,14 @@ class TutorService:
             step=convo.current_step,
             meta={
                 "model": completion.model,
+                "input_tokens": completion.input_tokens,
                 "output_tokens": completion.output_tokens,
                 "hint_level": hint_level,
                 "fatigue": fatigued,
             },
         )
         self.db.add(tutor_msg)
+        record_usage(self.db, convo.user_id, "tutor", completion)
         await self.db.flush()
         return tutor_msg
 

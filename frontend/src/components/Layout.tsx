@@ -1,5 +1,5 @@
 import { m } from "framer-motion";
-import { Award, Compass, House, LogOut, MessageCircleQuestion } from "lucide-react";
+import { Award, Compass, House, LogOut, MessageCircleQuestion, ShieldCheck } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +14,8 @@ const NAV = [
   { to: "/explorar", label: "Explorar", icon: Compass },
   { to: "/logros", label: "Mis logros", icon: Award },
 ];
+// Solo visible para el superadmin (el backend también protege /admin).
+const ADMIN_NAV = { to: "/admin", label: "Admin", icon: ShieldCheck, end: false };
 
 export function Layout() {
   const { user, logout } = useAuthStore();
@@ -22,6 +24,7 @@ export function Layout() {
   // Aviso discreto en "Inicio" cuando hay repasos pendientes.
   const { data: reviews } = useReviews();
   const reviewsDue = (reviews?.due.length ?? 0) > 0;
+  const nav = user?.role === "superadmin" ? [...NAV, ADMIN_NAV] : NAV;
 
   function signOut() {
     logout();
@@ -41,7 +44,7 @@ export function Layout() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1.5" aria-label="Principal">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -104,9 +107,12 @@ export function Layout() {
       {/* Barra inferior (tablet y celular): lo más usado en las aulas */}
       <nav
         aria-label="Principal"
-        className="glass fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"
+        className={cn(
+          "glass fixed inset-x-0 bottom-0 z-30 grid border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden",
+          nav.length > 4 ? "grid-cols-5" : "grid-cols-4",
+        )}
       >
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

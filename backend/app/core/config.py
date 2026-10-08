@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = 30
     DB_POOL_RECYCLE: int = 1800
 
+    # Correo(s) con acceso al panel de superadministrador, separados por coma. Al arrancar,
+    # esas cuentas (ya registradas) reciben el rol superadmin. Nadie más puede obtenerlo.
+    SUPERADMIN_EMAIL: str = ""
+
     # Crear el usuario demo (contraseña pública) al sembrar. Desactivar en producción.
     SEED_DEMO_USER: bool = True
 
@@ -91,6 +95,11 @@ class Settings(BaseSettings):
                 path=self.POSTGRES_DB,
             )
         )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def superadmin_emails(self) -> set[str]:
+        return {e.strip().lower() for e in self.SUPERADMIN_EMAIL.split(",") if e.strip()}
 
     @computed_field  # type: ignore[prop-decorator]
     @property

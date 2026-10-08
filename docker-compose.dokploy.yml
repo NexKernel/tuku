@@ -24,6 +24,8 @@ services:
       DEBUG: "false"
       TZ: America/Lima
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-https://tuku.ose.lat}
+      # Correo de la cuenta con acceso al panel /admin (regístrala primero en la app).
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
       # Usuario demo con contraseña pública: solo para pruebas, nunca en producción real.
       SEED_DEMO_USER: ${SEED_DEMO_USER:-false}
       AI_PROVIDER: ${AI_PROVIDER:-deepseek}

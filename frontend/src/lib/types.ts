@@ -91,3 +91,47 @@ export interface ReviewOverview {
   due: Review[];
   completed: number;
 }
+
+// ── Panel de superadmin ─────────────────────────────────────────
+export interface AdminDayPoint {
+  day: string;
+  registrations: number;
+  tokens: number;
+}
+
+export interface AdminStats {
+  users_total: number;
+  users_active: number;
+  users_inactive: number;
+  registered_today: number;
+  registered_7d: number;
+  tokens_input: number;
+  tokens_output: number;
+  ai_calls: number;
+  tokens_today: number;
+  tokens_7d: number;
+  require_approval: boolean;
+  series: AdminDayPoint[];
+  top_users: { id: string; full_name: string; email: string; tokens: number }[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  tokens: number;
+  last_activity: string | null;
+  conversations: number;
+}
+
+export interface AdminUserPage {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export type AdminStatusFilter = "all" | "active" | "inactive";
