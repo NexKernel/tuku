@@ -2,8 +2,8 @@ import { m } from "framer-motion";
 import { Star } from "lucide-react";
 import { TukuOwl } from "@/components/TukuOwl";
 
-/** Celebración breve: refuerza el esfuerzo de recorrer todo el camino. */
-export function Celebration() {
+/** Celebración breve: refuerza el esfuerzo de recorrer todo el camino. Un toque la cierra. */
+export function Celebration({ onClose }: { onClose: () => void }) {
   const stars = Array.from({ length: 12 }, (_, i) => {
     const angle = (i / 12) * Math.PI * 2;
     return { x: Math.cos(angle) * 140, y: Math.sin(angle) * 110, delay: (i % 4) * 0.05 };
@@ -13,8 +13,11 @@ export function Celebration() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[rgb(var(--surface)/0.75)] backdrop-blur-sm"
+      // Sin backdrop-blur: en Chrome Android / Safari iOS la capa difuminada no se repinta al
+      // desvanecerse y la pantalla queda opaca hasta que el niño desliza.
+      className="absolute inset-0 z-20 flex items-center justify-center bg-[rgb(var(--surface)/0.92)]"
       role="status"
+      onClick={onClose}
     >
       <div className="relative flex flex-col items-center gap-2 text-center">
         {stars.map((s, i) => (

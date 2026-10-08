@@ -59,11 +59,16 @@ function useCompletionCelebration(convo: ConversationDetail | undefined) {
     prevStepRef.current = { convoId: convo.id, step: convo.current_step };
     if (prev.convoId === convo.id && prev.step !== convo.current_step && isCompleted(convo.current_step)) {
       setCelebrate(true);
-      const t = setTimeout(() => setCelebrate(false), 3500);
-      return () => clearTimeout(t);
     }
   }, [convo]);
-  return celebrate;
+  // El cierre depende solo de `celebrate`: si `convo` cambia durante la animación (un
+  // refetch), antes se cancelaba el timer y la capa se quedaba encima para siempre.
+  useEffect(() => {
+    if (!celebrate) return;
+    const t = setTimeout(() => setCelebrate(false), 3500);
+    return () => clearTimeout(t);
+  }, [celebrate]);
+  return [celebrate, () => setCelebrate(false)] as const;
 }
 
 export function Tutor() {
@@ -91,7 +96,7 @@ export function Tutor() {
   const start = useStartConversation();
   const advance = useAdvance(activeId ?? "");
   const { supported: canSpeak, speakingId, speak, stop } = useSpeak();
-  const celebrate = useCompletionCelebration(convo);
+  const [celebrate, closeCelebration] = useCompletionCelebration(convo);
 
   const busy = start.isPending || advance.isPending;
 
@@ -204,7 +209,7 @@ export function Tutor() {
           </>
         )}
 
-        <AnimatePresence>{celebrate && <Celebration />}</AnimatePresence>
+        <AnimatePresence>{celebrate && <Celebration onClose={closeCelebration} />}</AnimatePresence>
       </div>
     </div>
   );

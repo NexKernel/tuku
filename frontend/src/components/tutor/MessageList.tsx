@@ -40,6 +40,23 @@ export function MessageList({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages?.length, busy, pendingReply]);
 
+  // Si el panel se achica (aparece el aviso de "Camino completo", el teclado del celular, las
+  // opciones…) y el niño estaba al final, lo mantiene al final: si no, el último mensaje queda
+  // tapado y hay que deslizar para verlo.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let lastHeight = el.clientHeight;
+    const observer = new ResizeObserver(() => {
+      const shrunk = el.clientHeight < lastHeight;
+      const wasAtBottom = el.scrollHeight - el.scrollTop - lastHeight < 80;
+      lastHeight = el.clientHeight;
+      if (shrunk && wasAtBottom) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-5" aria-live="polite">
       {isLoading && <div className="skeleton h-24" />}
